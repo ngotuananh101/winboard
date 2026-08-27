@@ -47,4 +47,15 @@ assert(remaining[0].id === item1.id, 'remaining item should be item1');
 storage.removeItem(item1.id);
 assert(storage.loadHistory().items.length === 0, 'history should be empty after delete');
 
+// Test items without id get assigned an ID automatically
+let rawHistoryFile = GLib.build_filenamev([testDir, 'history.json']);
+GLib.file_set_contents(rawHistoryFile, JSON.stringify({
+    items: [
+        { type: 'text', content: 'Item without ID', timestamp: Date.now(), pinned: false }
+    ]
+}));
+let reloaded = storage.loadHistory();
+assert(reloaded.items.length === 1, 'reloaded items length should be 1');
+assert(typeof reloaded.items[0].id === 'string' && reloaded.items[0].id.length > 0, 'missing id should be filled');
+
 print('StorageManager tests passed successfully!');

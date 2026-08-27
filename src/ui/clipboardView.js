@@ -19,6 +19,7 @@ class ClipboardView extends St.ScrollView {
 
         this._storage = storageManager;
         this._onItemSelected = onItemSelected;
+        this._currentFilter = '';
 
         this._container = new St.BoxLayout({
             vertical: true,
@@ -30,14 +31,15 @@ class ClipboardView extends St.ScrollView {
         this.refresh();
     }
 
-    refresh(filterText = '') {
+    refresh(filterText = this._currentFilter) {
+        this._currentFilter = filterText || '';
         this._container.destroy_all_children();
 
         let history = this._storage.loadHistory();
         let items = history.items || [];
 
-        if (filterText) {
-            let query = filterText.toLowerCase().trim();
+        if (this._currentFilter) {
+            let query = this._currentFilter.toLowerCase().trim();
             items = items.filter(item => {
                 if (item.type === 'text') {
                     return item.content.toLowerCase().includes(query);
@@ -54,7 +56,7 @@ class ClipboardView extends St.ScrollView {
 
         if (pinnedItems.length === 0 && recentItems.length === 0) {
             let emptyLabel = new St.Label({
-                text: filterText ? 'Không tìm thấy kết quả nào' : 'Lịch sử clipboard trống',
+                text: this._currentFilter ? 'Không tìm thấy kết quả nào' : 'Lịch sử clipboard trống',
                 style_class: 'winboard-empty-state'
             });
             this._container.add_child(emptyLabel);
@@ -93,10 +95,9 @@ class ClipboardView extends St.ScrollView {
                 style_class: 'winboard-clear-button',
                 can_focus: true
             });
-            clearBtn.connect('button-press-event', () => Clutter.EVENT_STOP);
             clearBtn.connect('clicked', () => {
                 this._storage.clearUnpinned();
-                this.refresh(filterText);
+                this.refresh(this._currentFilter);
             });
             recentHeaderBox.add_child(clearBtn);
 
@@ -178,10 +179,9 @@ class ClipboardView extends St.ScrollView {
             style_class: `winboard-icon-button ${item.pinned ? 'pinned' : ''}`,
             can_focus: true
         });
-        pinBtn.connect('button-press-event', () => Clutter.EVENT_STOP);
         pinBtn.connect('clicked', () => {
             this._storage.togglePin(item.id);
-            this.refresh();
+            this.refresh(this._currentFilter);
         });
         footer.add_child(pinBtn);
 
@@ -191,10 +191,9 @@ class ClipboardView extends St.ScrollView {
             style_class: 'winboard-icon-button',
             can_focus: true
         });
-        delBtn.connect('button-press-event', () => Clutter.EVENT_STOP);
         delBtn.connect('clicked', () => {
             this._storage.removeItem(item.id);
-            this.refresh();
+            this.refresh(this._currentFilter);
         });
         footer.add_child(delBtn);
 

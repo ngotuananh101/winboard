@@ -34,6 +34,18 @@ export class StorageManager {
             if (!data || !Array.isArray(data.items)) {
                 return { items: [] };
             }
+
+            let modified = false;
+            data.items.forEach(item => {
+                if (!item.id) {
+                    item.id = GLib.uuid_string_random();
+                    modified = true;
+                }
+            });
+            if (modified) {
+                this.saveHistory(data);
+            }
+
             return data;
         } catch (e) {
             logError(e, 'Failed to load Winboard history');
