@@ -51,6 +51,15 @@ class Popup extends St.Widget {
             return Clutter.EVENT_PROPAGATE;
         });
 
+        this.connect('touch-event', (actor, event) => {
+            let source = event.get_source();
+            if (source === this || !this._card.contains(source)) {
+                this.close();
+                return Clutter.EVENT_STOP;
+            }
+            return Clutter.EVENT_PROPAGATE;
+        });
+
         // The inner floating card container
         this._card = new St.BoxLayout({
             vertical: true,
