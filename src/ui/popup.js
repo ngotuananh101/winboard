@@ -44,7 +44,7 @@ class Popup extends St.Widget {
         // Dismiss when clicking the backdrop outside the card
         this.connect('button-press-event', (actor, event) => {
             let source = event.get_source();
-            if (source === this) {
+            if (source === this || !this._card.contains(source)) {
                 this.close();
                 return Clutter.EVENT_STOP;
             }

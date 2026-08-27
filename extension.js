@@ -19,17 +19,17 @@ export default class WinboardExtension extends Extension {
         this._clipboardManager.start();
 
         this._autoPaster = new AutoPaster();
-
-        this._popup = new Popup({
-            extensionPath: this.path,
-            storageManager: this._storage,
-            clipboardManager: this._clipboardManager,
-            autoPaster: this._autoPaster,
-            settings: this._settings
-        });
-
         this._keybinder = new Keybinder(this._settings);
         this._keybinder.bind('shortcut', () => {
+            if (!this._popup) {
+                this._popup = new Popup({
+                    extensionPath: this.path,
+                    storageManager: this._storage,
+                    clipboardManager: this._clipboardManager,
+                    autoPaster: this._autoPaster,
+                    settings: this._settings
+                });
+            }
             this._popup.open();
         });
     }
