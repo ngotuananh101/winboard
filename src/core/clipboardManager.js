@@ -1,13 +1,14 @@
 import St from 'gi://St';
 import GLib from 'gi://GLib';
 import Gio from 'gi://Gio';
-import GdkPixbuf from 'gi://GdkPixbuf';
+import Meta from 'gi://Meta';
 
 export class ClipboardManager {
     constructor(storageManager, settings) {
         this._storage = storageManager;
         this._settings = settings;
         this._clipboard = St.Clipboard.get_default();
+        this._selection = null;
         this._ownerChangedId = 0;
         this._ignoreNextChange = false;
         this._lastCopiedText = null;
@@ -15,16 +16,24 @@ export class ClipboardManager {
 
     start() {
         if (this._ownerChangedId === 0) {
-            this._ownerChangedId = this._clipboard.connect('owner-changed', () => {
-                this._onClipboardChanged();
-            });
+            if (typeof global !== 'undefined' && global.display) {
+                this._selection = global.display.get_selection();
+                if (this._selection) {
+                    this._ownerChangedId = this._selection.connect('owner-changed', (_selection, selectionType) => {
+                        if (selectionType === Meta.SelectionType.SELECTION_CLIPBOARD) {
+                            this._onClipboardChanged();
+                        }
+                    });
+                }
+            }
         }
     }
 
     stop() {
-        if (this._ownerChangedId !== 0) {
-            this._clipboard.disconnect(this._ownerChangedId);
+        if (this._ownerChangedId !== 0 && this._selection) {
+            this._selection.disconnect(this._ownerChangedId);
             this._ownerChangedId = 0;
+            this._selection = null;
         }
     }
 
