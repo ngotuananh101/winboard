@@ -29,6 +29,7 @@ const MODULES = [
     '../src/ui/emojiView.js',
     '../src/ui/kaomojiView.js',
     '../src/ui/symbolsView.js',
+    '../src/ui/popup.js',
 ];
 
 for (const path of MODULES) {
