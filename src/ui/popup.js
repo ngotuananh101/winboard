@@ -29,6 +29,8 @@ class Popup extends St.Widget {
         this._settings = settings;
         this._isOpen = false;
         this._grab = null;
+        this._eventCaptureId = 0;
+        this._keyFocusNotifyId = 0;
 
         this._activeTab = 'clipboard';
 
@@ -41,25 +43,6 @@ class Popup extends St.Widget {
     }
 
     _buildUI() {
-        // Dismiss when clicking the backdrop outside the card
-        this.connect('button-press-event', (actor, event) => {
-            let source = event.get_source();
-            if (source === this || !this._card.contains(source)) {
-                this.close();
-                return Clutter.EVENT_STOP;
-            }
-            return Clutter.EVENT_PROPAGATE;
-        });
-
-        this.connect('touch-event', (actor, event) => {
-            let source = event.get_source();
-            if (source === this || !this._card.contains(source)) {
-                this.close();
-                return Clutter.EVENT_STOP;
-            }
-            return Clutter.EVENT_PROPAGATE;
-        });
-
         // The inner floating card container
         this._card = new St.BoxLayout({
             vertical: true,
@@ -123,6 +106,31 @@ class Popup extends St.Widget {
         });
     }
 
+    _onEventCapture(actor, event) {
+        if (!this._isOpen)
+            return Clutter.EVENT_PROPAGATE;
+
+        let eventType = event.type();
+        if (eventType === Clutter.EventType.BUTTON_PRESS || eventType === Clutter.EventType.TOUCH_BEGIN) {
+            let source = event.get_source();
+            if (!this._card.contains(source)) {
+                this.close();
+                return Clutter.EVENT_STOP;
+            }
+        }
+        return Clutter.EVENT_PROPAGATE;
+    }
+
+    _onKeyFocusChanged() {
+        if (!this._isOpen)
+            return;
+
+        let focus = global.stage.key_focus;
+        if (focus && !this._card.contains(focus) && focus !== this) {
+            this.close();
+        }
+    }
+
     _switchTab(tabId) {
         this._activeTab = tabId;
         this._clipboardView.visible = (tabId === 'clipboard');
@@ -182,6 +190,13 @@ class Popup extends St.Widget {
         // Grab pointer & keyboard
         this._grab = Main.pushModal(this);
         this._header.focusSearch();
+
+        if (this._eventCaptureId === 0) {
+            this._eventCaptureId = global.stage.connect('captured-event', this._onEventCapture.bind(this));
+        }
+        if (this._keyFocusNotifyId === 0) {
+            this._keyFocusNotifyId = global.stage.connect('notify::key-focus', this._onKeyFocusChanged.bind(this));
+        }
     }
 
     _positionAtPointer() {
@@ -231,6 +246,15 @@ class Popup extends St.Widget {
 
     close() {
         if (!this._isOpen) return;
+
+        if (this._eventCaptureId !== 0) {
+            global.stage.disconnect(this._eventCaptureId);
+            this._eventCaptureId = 0;
+        }
+        if (this._keyFocusNotifyId !== 0) {
+            global.stage.disconnect(this._keyFocusNotifyId);
+            this._keyFocusNotifyId = 0;
+        }
 
         if (this._grab) {
             Main.popModal(this._grab);
