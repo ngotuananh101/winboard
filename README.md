@@ -1,47 +1,71 @@
 # Winboard - Windows 11 Style Clipboard Manager for GNOME Shell 46
 
-**Winboard** là một tiện ích mở rộng (GNOME Shell Extension) mang trải nghiệm **Clipboard Manager của Windows 11 (`Win + V`)** lên GNOME 46 (Wayland & X11).
+**Winboard** is a GNOME Shell extension that brings the seamless **Windows 11 Clipboard Manager experience (`Win + V`)** to GNOME 46 (Wayland & X11).
 
 ---
 
-## ✨ Tính năng nổi bật
+## ✨ Features
 
-- 🚀 **Mở tại vị trí chuột**: Nhấn `Super + V` để mở popup nổi ngay tại đầu con trỏ chuột (có thuật toán chống tràn viền màn hình).
-- 📋 **Lịch sử Clipboard đầy đủ**: Tự động lưu trữ Text, Code, Link và Hình ảnh chụp màn hình (`image/png`).
-- 📌 **Ghim (Pin) thông minh**: Giữ lại các đoạn văn bản quan trọng không bị xóa khi dọn dẹp hoặc khi đầy bộ nhớ.
-- 😀 **Bộ chọn biểu tượng phong phú (4 Tabs)**:
-  - **Clipboard**: Lịch sử sao chép.
-  - **Emoji**: Danh mục biểu tượng cảm xúc Unicode đầy đủ.
-  - **Kaomoji**: Kho ký tự biểu cảm Nhật Bản (ví dụ: `¯\_(ツ)_/¯`, `(╯°□°)╯︵ ┻━┻`).
-  - **Symbols**: Ký tự toán học, tiền tệ (`₫`, `$`, `€`), mũi tên, dấu câu đặc biệt.
-- ⚡ **Auto-Paste thông minh**: Tự động nhận diện loại cửa sổ để dán:
-  - Cửa sổ Terminal (`gnome-terminal`, `ptyxis`, `alacritty`, `kitty`...): gửi phím ảo `Ctrl + Shift + V`.
-  - Ứng dụng thông thường (Browser, VSCode, Editor...): gửi phím ảo `Ctrl + V`.
-- 🎨 **Giao diện Fluent Design**: Nền mờ Acrylic/Glassmorphism mượt mà, bo góc hiện đại.
+- 🚀 **Open at Cursor Position**: Press `Super + V` to toggle the floating popup right at your mouse pointer (with automatic screen edge clamping to prevent overflow).
+- 📋 **Rich Clipboard History**: Automatically tracks and stores copied text, code snippets, URLs, and image screenshots (`image/png`) with natural aspect ratio previews.
+- 📌 **Smart Pinning**: Pin important items so they stay permanently and never get pruned during cleanups or when storage reaches its limit.
+- 😀 **4-in-1 Picker Tabs**:
+  - **Clipboard**: Clipboard history with search, pin, and individual/bulk delete.
+  - **Emoji**: Comprehensive Unicode emoji category grid.
+  - **Kaomoji**: Expressive Japanese text emoticons (e.g., `¯\_(ツ)_/¯`, `(╯°□°)╯︵ ┻━┻`).
+  - **Symbols**: Mathematical symbols, currency (`$`, `€`, `¥`, `₫`), arrows, punctuation, and Greek letters.
+- ⚡ **Intelligent Auto-Paste**: Automatically detects the active window type:
+  - Terminal windows (`gnome-terminal`, `ptyxis`, `alacritty`, `kitty`...): Sends virtual `Ctrl + Shift + V`.
+  - Regular applications (Browsers, VSCode, text editors...): Sends virtual `Ctrl + V`.
+- 🌐 **Multilingual Support**: English (default) and Vietnamese, configurable directly in Preferences.
+- ⌨️ **Customizable Shortcuts**: Rebind the popup activation shortcut interactively in Preferences (with built-in conflict resolution and Reset button).
+- 🎨 **Windows 11 Fluent Design**: Smooth acrylic/glassmorphism background, subtle border glow, and modern rounded corners.
 
 ---
 
-## 🛠️ Cài đặt & Sử dụng
+## 🛠️ Installation & Usage
 
-### 1. Cài đặt tự động
-Chạy script cài đặt có sẵn trong thư mục dự án:
+### 1. Local Installation
+Run the included installation script:
 ```bash
 ./scripts/install.sh
 ```
 
-### 2. Kích hoạt Extension
-- Do bạn đang dùng **Wayland**, GNOME Shell cần được reload lại session để nhận diện extension mới được cài vào `~/.local/share/gnome-shell/extensions/`:
-  - **Đăng xuất (Log Out)** và **Đăng nhập lại (Log In)**.
-- Sau khi đăng nhập lại, bật extension bằng lệnh:
+### 2. Enable the Extension
+- If you are on **Wayland**, GNOME Shell requires a session restart to recognize newly installed extensions in `~/.local/share/gnome-shell/extensions/`:
+  - **Log Out** and **Log Back In**.
+- Enable the extension via terminal:
 ```bash
-gnome-extensions enable winboard@anhnt.tools
+gnome-extensions enable winboard@ponta.dev
 ```
-hoặc mở ứng dụng **Extensions (Tiện ích mở rộng)** trong danh sách phần mềm và bật công tắc cho **Winboard**.
+or toggle **Winboard** in the **Extensions** app.
 
-### 3. Phím tắt & Cấu hình
-- Phím tắt mặc định: `Super + V` (hoặc `Win + V`).
-- Bạn có thể vào phần Cài đặt (Preferences) của extension để tùy chỉnh:
-  - Bật/Tắt Auto-Paste.
-  - Bật/Tắt lưu hình ảnh.
-  - Điều chỉnh giới hạn số lượng mục lưu trữ (10 - 200).
-  - Tự động cắt khoảng trắng thừa (Trim Whitespace).
+### 3. Shortcuts & Preferences
+- Default shortcut: `Super + V` (or `Win + V`).
+- Open **Preferences** (Extension Settings) to customize:
+  - **Interface Language**: Switch between **English** and **Tiếng Việt**.
+  - **Keyboard Shortcut**: Record a custom shortcut combination or reset to `<Super>v`.
+  - **Auto-Paste on Selection**: Enable/disable automatic pasting after selection.
+  - **Capture Images**: Enable/disable image screenshot tracking.
+  - **History Limit**: Adjust max stored unpinned items (10 – 200).
+  - **Trim Whitespace**: Automatically remove leading and trailing whitespace from copied text snippets.
+
+### 4. Package for extensions.gnome.org (EGO)
+To create a bundle ready for submission:
+```bash
+./scripts/package.sh
+```
+The validated extension package will be generated at `build/winboard@ponta.dev.shell-extension.zip`, ready for upload to [GNOME Extensions Upload](https://extensions.gnome.org/upload/).
+
+---
+
+## 🧪 Verification & Testing
+
+Run the automated test suite:
+```bash
+bash tests/verify_all.sh
+```
+
+## 📄 License
+
+GPL-3.0-or-later

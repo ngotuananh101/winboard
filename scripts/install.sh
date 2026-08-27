@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-UUID="winboard@anhnt.tools"
+UUID="winboard@ponta.dev"
 TARGET_DIR="$HOME/.local/share/gnome-shell/extensions/$UUID"
 
 echo "=== Building Winboard ==="
