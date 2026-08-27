@@ -37,9 +37,13 @@ class ClipboardView extends St.ScrollView {
         let items = history.items || [];
 
         if (filterText) {
+            let query = filterText.toLowerCase().trim();
             items = items.filter(item => {
                 if (item.type === 'text') {
-                    return item.content.toLowerCase().includes(filterText);
+                    return item.content.toLowerCase().includes(query);
+                } else if (item.type === 'image') {
+                    let imageKeywords = ['ảnh', 'anh', 'image', 'hinh', 'hinh anh', 'screenshot', 'png'];
+                    return imageKeywords.some(kw => kw.includes(query) || query.includes(kw));
                 }
                 return false;
             });
@@ -127,11 +131,31 @@ class ClipboardView extends St.ScrollView {
             textLabel.clutter_text.ellipsize = 3; // PANGO_ELLIPSIZE_END
             box.add_child(textLabel);
         } else if (item.type === 'image') {
-            let imageLabel = new St.Label({
-                text: '🖼️ [Hình ảnh]',
-                style_class: 'winboard-item-text'
-            });
-            box.add_child(imageLabel);
+            if (item.imagePath && GLib.file_test(item.imagePath, GLib.FileTest.EXISTS)) {
+                let previewBox = new St.BoxLayout({
+                    style_class: 'winboard-image-preview-container',
+                    x_align: Clutter.ActorAlign.CENTER,
+                    y_align: Clutter.ActorAlign.CENTER,
+                    x_expand: true
+                });
+
+                let file = Gio.File.new_for_path(item.imagePath);
+                let gicon = Gio.FileIcon.new(file);
+                let imageIcon = new St.Icon({
+                    gicon: gicon,
+                    icon_size: 140,
+                    style_class: 'winboard-image-preview'
+                });
+
+                previewBox.add_child(imageIcon);
+                box.add_child(previewBox);
+            } else {
+                let imageLabel = new St.Label({
+                    text: '🖼️ [Hình ảnh không khả dụng]',
+                    style_class: 'winboard-item-text'
+                });
+                box.add_child(imageLabel);
+            }
         }
 
         // Footer with timestamp & actions

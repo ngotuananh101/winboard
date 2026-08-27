@@ -21,7 +21,10 @@ gjs -m tests/test_keybinder_syntax.js
 echo "5. Checking UI Module Syntax (test_ui_syntax.js)..."
 gjs -m tests/test_ui_syntax.js
 
-echo "6. Checking Entrypoint Syntax (test_entrypoint_syntax.js)..."
+echo "6. Checking Image Filter Tests (test_image_filter.js)..."
+gjs -m tests/test_image_filter.js
+
+echo "7. Checking Entrypoint Syntax (test_entrypoint_syntax.js)..."
 gjs -m tests/test_entrypoint_syntax.js
 
 echo "=== All checks passed! ==="
