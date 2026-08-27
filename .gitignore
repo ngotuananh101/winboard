@@ -1,0 +1,47 @@
+# GNOME Shell Extension build & compiled schemas
+schemas/gschemas.compiled
+*.zip
+build/
+dist/
+_build/
+
+# Node & Package Managers
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.eslintcache
+
+# AI tools & Assistant caches
+.claude/
+.remember/
+.agents/
+.gemini/
+.serena/cache/
+.serena/project.local.yml
+*.local.json
+*.local.md
+
+# IDEs and Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+*.sublime-project
+*.sublime-workspace
+.project
+.settings/
+
+# Operating System & Temp files
+.DS_Store
+Thumbs.db
+*.tmp
+*.bak
+*.log
+
+# Environment variables
+.env
+.env.*
+!.env.example
