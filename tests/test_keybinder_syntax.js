@@ -19,6 +19,7 @@ function assert(condition, message) {
 }
 
 const MODULES = [
+    '../src/core/i18n.js',
     '../src/core/clipboardManager.js',
     '../src/core/autoPaster.js',
     '../src/core/keybinder.js',

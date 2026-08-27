@@ -14,6 +14,7 @@ export class Keybinder {
     bind(keyName, handler) {
         this.unbind(keyName);
         this._boundAction = keyName;
+        this._handler = handler;
 
         // Automatically liberate Super+V from GNOME's built-in toggle-message-tray if needed
         this._resolveConflicts();
@@ -25,6 +26,14 @@ export class Keybinder {
             Shell.ActionMode.NORMAL | Shell.ActionMode.OVERVIEW | Shell.ActionMode.POPUP,
             handler
         );
+    }
+
+    rebind(keyName = null, handler = null) {
+        let action = keyName || this._boundAction;
+        let h = handler || this._handler;
+        if (action && h) {
+            this.bind(action, h);
+        }
     }
 
     _resolveConflicts() {

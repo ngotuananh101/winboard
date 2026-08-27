@@ -15,19 +15,22 @@ bash tests/test_schema.sh
 echo "3. Checking Storage Unit Tests (test_storage.js)..."
 gjs -m tests/test_storage.js
 
-echo "4. Checking Core Module Syntax (test_keybinder_syntax.js)..."
+echo "4. Checking i18n Unit Tests (test_i18n.js)..."
+gjs -m tests/test_i18n.js
+
+echo "5. Checking Core Module Syntax (test_keybinder_syntax.js)..."
 gjs -m tests/test_keybinder_syntax.js
 
-echo "5. Checking UI Module Syntax (test_ui_syntax.js)..."
+echo "6. Checking UI Module Syntax (test_ui_syntax.js)..."
 gjs -m tests/test_ui_syntax.js
 
-echo "6. Checking Image Filter Tests (test_image_filter.js)..."
+echo "7. Checking Image Filter Tests (test_image_filter.js)..."
 gjs -m tests/test_image_filter.js
 
-echo "7. Checking Image Aspect Ratio Loader (test_image_loader.js)..."
+echo "8. Checking Image Aspect Ratio Loader (test_image_loader.js)..."
 gjs -m tests/test_image_loader.js
 
-echo "8. Checking Entrypoint Syntax (test_entrypoint_syntax.js)..."
+echo "9. Checking Entrypoint Syntax (test_entrypoint_syntax.js)..."
 gjs -m tests/test_entrypoint_syntax.js
 
 echo "=== All checks passed! ==="

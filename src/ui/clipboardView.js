@@ -5,11 +5,12 @@ import Cogl from 'gi://Cogl';
 import GdkPixbuf from 'gi://GdkPixbuf';
 import GLib from 'gi://GLib';
 import Gio from 'gi://Gio';
+import { getLanguage, getText, getImageKeywords } from '../core/i18n.js';
 
 export const ClipboardView = GObject.registerClass(
 class ClipboardView extends St.ScrollView {
     _init(params = {}) {
-        let { storageManager, onItemSelected, ...stParams } = params;
+        let { settings, storageManager, onItemSelected, ...stParams } = params;
         super._init({
             style_class: 'winboard-scroll-view',
             hscrollbar_policy: St.PolicyType.NEVER,
@@ -19,6 +20,8 @@ class ClipboardView extends St.ScrollView {
             ...stParams
         });
 
+        this._settings = settings;
+        this._lang = getLanguage(this._settings);
         this._storage = storageManager;
         this._onItemSelected = onItemSelected;
         this._currentFilter = '';
@@ -33,6 +36,11 @@ class ClipboardView extends St.ScrollView {
         this.refresh();
     }
 
+    updateLocale(lang) {
+        this._lang = lang;
+        this.refresh(this._currentFilter);
+    }
+
     refresh(filterText = this._currentFilter) {
         this._currentFilter = filterText || '';
         this._container.destroy_all_children();
@@ -42,11 +50,11 @@ class ClipboardView extends St.ScrollView {
 
         if (this._currentFilter) {
             let query = this._currentFilter.toLowerCase().trim();
+            let imageKeywords = getImageKeywords(this._lang);
             items = items.filter(item => {
                 if (item.type === 'text') {
                     return item.content.toLowerCase().includes(query);
                 } else if (item.type === 'image') {
-                    let imageKeywords = ['ảnh', 'anh', 'image', 'hinh', 'hinh anh', 'screenshot', 'png'];
                     return imageKeywords.some(kw => kw.includes(query) || query.includes(kw));
                 }
                 return false;
@@ -58,7 +66,7 @@ class ClipboardView extends St.ScrollView {
 
         if (pinnedItems.length === 0 && recentItems.length === 0) {
             let emptyLabel = new St.Label({
-                text: this._currentFilter ? 'Không tìm thấy kết quả nào' : 'Lịch sử clipboard trống',
+                text: this._currentFilter ? getText('empty_search', this._lang) : getText('empty_history', this._lang),
                 style_class: 'winboard-empty-state'
             });
             this._container.add_child(emptyLabel);
@@ -68,7 +76,7 @@ class ClipboardView extends St.ScrollView {
         // Pinned Section
         if (pinnedItems.length > 0) {
             let pinnedHeader = new St.Label({
-                text: '📌 ĐÃ GHIM',
+                text: getText('pinned_section', this._lang),
                 style_class: 'winboard-section-header'
             });
             this._container.add_child(pinnedHeader);
@@ -86,14 +94,14 @@ class ClipboardView extends St.ScrollView {
             });
 
             let recentLabel = new St.Label({
-                text: '🕒 GẦN ĐÂY',
+                text: getText('recent_section', this._lang),
                 style_class: 'winboard-section-header',
                 x_expand: true
             });
             recentHeaderBox.add_child(recentLabel);
 
             let clearBtn = new St.Button({
-                label: '🗑️ Xóa hết',
+                label: getText('clear_all', this._lang),
                 style_class: 'winboard-clear-button',
                 can_focus: true
             });
@@ -146,7 +154,7 @@ class ClipboardView extends St.ScrollView {
                 box.add_child(previewBox);
             } else {
                 let imageLabel = new St.Label({
-                    text: '🖼️ [Hình ảnh không khả dụng]',
+                    text: getText('image_unavailable', this._lang),
                     style_class: 'winboard-item-text'
                 });
                 box.add_child(imageLabel);

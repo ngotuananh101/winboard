@@ -26,5 +26,14 @@
       <summary>Strip whitespace</summary>
       <description>Trim leading and trailing whitespace from copied text</description>
     </key>
+    <key name="language" type="s">
+      <choices>
+        <choice value="en"/>
+        <choice value="vi"/>
+      </choices>
+      <default>'en'</default>
+      <summary>Interface language</summary>
+      <description>Interface language ('en' for English, 'vi' for Vietnamese)</description>
+    </key>
   </schema>
 </schemalist>

@@ -15,6 +15,12 @@ export default class WinboardExtension extends Extension {
             this._storage.setMaxItems(this._settings.get_int('history-size'));
         });
 
+        this._shortcutChangedId = this._settings.connect('changed::shortcut', () => {
+            if (this._keybinder) {
+                this._keybinder.rebind('shortcut');
+            }
+        });
+
         this._clipboardManager = new ClipboardManager(this._storage, this._settings);
         this._clipboardManager.start();
 
@@ -38,6 +44,11 @@ export default class WinboardExtension extends Extension {
         if (this._settingsChangedId) {
             this._settings.disconnect(this._settingsChangedId);
             this._settingsChangedId = 0;
+        }
+
+        if (this._shortcutChangedId) {
+            this._settings.disconnect(this._shortcutChangedId);
+            this._shortcutChangedId = 0;
         }
 
         if (this._keybinder) {

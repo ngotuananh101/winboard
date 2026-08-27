@@ -31,6 +31,7 @@ class Popup extends St.Widget {
         this._grab = null;
         this._eventCaptureId = 0;
         this._keyFocusNotifyId = 0;
+        this._langChangedId = 0;
 
         this._activeTab = 'clipboard';
 
@@ -40,6 +41,14 @@ class Popup extends St.Widget {
         }));
 
         this._buildUI();
+
+        if (this._settings) {
+            this._langChangedId = this._settings.connect('changed::language', () => {
+                let lang = this._settings.get_string('language') || 'en';
+                this._header.updateLocale(lang);
+                this._clipboardView.updateLocale(lang);
+            });
+        }
     }
 
     _buildUI() {
@@ -53,6 +62,7 @@ class Popup extends St.Widget {
 
         // Header (Search + Tabs)
         this._header = new Header({
+            settings: this._settings,
             onSearchChanged: (text) => this._onSearchChanged(text),
             onTabSelected: (tabId) => this._switchTab(tabId)
         });
@@ -66,6 +76,7 @@ class Popup extends St.Widget {
         });
 
         this._clipboardView = new ClipboardView({
+            settings: this._settings,
             storageManager: this._storage,
             onItemSelected: (item) => this._handleItemSelection(item)
         });
@@ -331,6 +342,10 @@ class Popup extends St.Widget {
 
     destroy() {
         this.close();
+        if (this._langChangedId && this._settings) {
+            this._settings.disconnect(this._langChangedId);
+            this._langChangedId = 0;
+        }
         if (Main.layoutManager.uiGroup.contains(this)) {
             Main.layoutManager.uiGroup.remove_child(this);
         }
