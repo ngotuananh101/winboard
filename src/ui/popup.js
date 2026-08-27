@@ -32,13 +32,19 @@ class Popup extends St.Widget {
 
         this._activeTab = 'clipboard';
 
+        this.add_constraint(new Clutter.BindConstraint({
+            source: Main.layoutManager.uiGroup,
+            coordinate: Clutter.BindCoordinate.ALL
+        }));
+
         this._buildUI();
     }
 
     _buildUI() {
         // Dismiss when clicking the backdrop outside the card
         this.connect('button-press-event', (actor, event) => {
-            if (event.get_source() === this) {
+            let source = event.get_source();
+            if (source === this) {
                 this.close();
                 return Clutter.EVENT_STOP;
             }
