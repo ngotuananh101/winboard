@@ -1,0 +1,187 @@
+import St from 'gi://St';
+import Clutter from 'gi://Clutter';
+import GLib from 'gi://GLib';
+import Gio from 'gi://Gio';
+
+export class ClipboardView extends St.ScrollView {
+    constructor({ storageManager, onItemSelected }) {
+        super({
+            style_class: 'winboard-scroll-view',
+            hscrollbar_policy: St.PolicyType.NEVER,
+            vscrollbar_policy: St.PolicyType.AUTOMATIC,
+            x_expand: true,
+            y_expand: true
+        });
+
+        this._storage = storageManager;
+        this._onItemSelected = onItemSelected;
+
+        this._container = new St.BoxLayout({
+            vertical: true,
+            style_class: 'winboard-items-list',
+            x_expand: true
+        });
+        this.set_child(this._container);
+
+        this.refresh();
+    }
+
+    refresh(filterText = '') {
+        this._container.destroy_all_children();
+
+        let history = this._storage.loadHistory();
+        let items = history.items || [];
+
+        if (filterText) {
+            items = items.filter(item => {
+                if (item.type === 'text') {
+                    return item.content.toLowerCase().includes(filterText);
+                }
+                return false;
+            });
+        }
+
+        let pinnedItems = items.filter(i => i.pinned);
+        let recentItems = items.filter(i => !i.pinned);
+
+        if (pinnedItems.length === 0 && recentItems.length === 0) {
+            let emptyLabel = new St.Label({
+                text: filterText ? 'Không tìm thấy kết quả nào' : 'Lịch sử clipboard trống',
+                style_class: 'winboard-empty-state'
+            });
+            this._container.add_child(emptyLabel);
+            return;
+        }
+
+        // Pinned Section
+        if (pinnedItems.length > 0) {
+            let pinnedHeader = new St.Label({
+                text: '📌 ĐÃ GHIM',
+                style_class: 'winboard-section-header'
+            });
+            this._container.add_child(pinnedHeader);
+
+            pinnedItems.forEach(item => {
+                this._container.add_child(this._createItemCard(item));
+            });
+        }
+
+        // Recent Section
+        if (recentItems.length > 0) {
+            let recentHeaderBox = new St.BoxLayout({
+                x_expand: true,
+                style_class: 'winboard-header'
+            });
+
+            let recentLabel = new St.Label({
+                text: '🕒 GẦN ĐÂY',
+                style_class: 'winboard-section-header',
+                x_expand: true
+            });
+            recentHeaderBox.add_child(recentLabel);
+
+            let clearBtn = new St.Button({
+                label: '🗑️ Xóa hết',
+                style_class: 'winboard-clear-button',
+                can_focus: true
+            });
+            clearBtn.connect('clicked', () => {
+                this._storage.clearUnpinned();
+                this.refresh(filterText);
+            });
+            recentHeaderBox.add_child(clearBtn);
+
+            this._container.add_child(recentHeaderBox);
+
+            recentItems.forEach(item => {
+                this._container.add_child(this._createItemCard(item));
+            });
+        }
+    }
+
+    _createItemCard(item) {
+        let card = new St.Button({
+            style_class: 'winboard-item-card',
+            can_focus: true,
+            x_expand: true
+        });
+
+        let box = new St.BoxLayout({
+            vertical: true,
+            x_expand: true
+        });
+
+        // Content
+        if (item.type === 'text') {
+            let displayText = item.content.length > 200 ? item.content.substring(0, 200) + '...' : item.content;
+            let textLabel = new St.Label({
+                text: displayText,
+                style_class: 'winboard-item-text'
+            });
+            textLabel.clutter_text.line_wrap = true;
+            textLabel.clutter_text.ellipsize = 3; // PANGO_ELLIPSIZE_END
+            box.add_child(textLabel);
+        } else if (item.type === 'image') {
+            let imageLabel = new St.Label({
+                text: '🖼️ [Hình ảnh]',
+                style_class: 'winboard-item-text'
+            });
+            box.add_child(imageLabel);
+        }
+
+        // Footer with timestamp & actions
+        let footer = new St.BoxLayout({
+            style_class: 'winboard-item-footer',
+            x_expand: true
+        });
+
+        let timeStr = this._formatTime(item.timestamp);
+        let timeLabel = new St.Label({
+            text: timeStr,
+            style_class: 'winboard-item-time',
+            x_expand: true
+        });
+        footer.add_child(timeLabel);
+
+        // Pin Button
+        let pinBtn = new St.Button({
+            label: item.pinned ? '📌' : '📍',
+            style_class: `winboard-icon-button ${item.pinned ? 'pinned' : ''}`,
+            can_focus: true
+        });
+        pinBtn.connect('clicked', () => {
+            this._storage.togglePin(item.id);
+            this.refresh();
+        });
+        footer.add_child(pinBtn);
+
+        // Delete Button
+        let delBtn = new St.Button({
+            label: '✕',
+            style_class: 'winboard-icon-button',
+            can_focus: true
+        });
+        delBtn.connect('clicked', () => {
+            this._storage.removeItem(item.id);
+            this.refresh();
+        });
+        footer.add_child(delBtn);
+
+        box.add_child(footer);
+        card.set_child(box);
+
+        card.connect('clicked', () => {
+            this._onItemSelected(item);
+        });
+
+        return card;
+    }
+
+    _formatTime(timestamp) {
+        if (!timestamp) return '';
+        let date = new Date(timestamp);
+        let hours = date.getHours().toString().padStart(2, '0');
+        let mins = date.getMinutes().toString().padStart(2, '0');
+        return `${hours}:${mins}`;
+    }
+}
