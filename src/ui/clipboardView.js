@@ -89,6 +89,7 @@ class ClipboardView extends St.ScrollView {
                 style_class: 'winboard-clear-button',
                 can_focus: true
             });
+            clearBtn.connect('button-press-event', () => Clutter.EVENT_STOP);
             clearBtn.connect('clicked', () => {
                 this._storage.clearUnpinned();
                 this.refresh(filterText);
@@ -153,6 +154,7 @@ class ClipboardView extends St.ScrollView {
             style_class: `winboard-icon-button ${item.pinned ? 'pinned' : ''}`,
             can_focus: true
         });
+        pinBtn.connect('button-press-event', () => Clutter.EVENT_STOP);
         pinBtn.connect('clicked', () => {
             this._storage.togglePin(item.id);
             this.refresh();
@@ -165,6 +167,7 @@ class ClipboardView extends St.ScrollView {
             style_class: 'winboard-icon-button',
             can_focus: true
         });
+        delBtn.connect('button-press-event', () => Clutter.EVENT_STOP);
         delBtn.connect('clicked', () => {
             this._storage.removeItem(item.id);
             this.refresh();

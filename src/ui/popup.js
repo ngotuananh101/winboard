@@ -104,6 +104,58 @@ class Popup extends St.Widget {
             }
             return Clutter.EVENT_PROPAGATE;
         });
+
+        // Direct backdrop click / touch listener
+        this.connect('button-press-event', (actor, event) => {
+            return this._handleBackdropEvent(event);
+        });
+
+        this.connect('touch-event', (actor, event) => {
+            if (event.type() === Clutter.EventType.TOUCH_BEGIN) {
+                return this._handleBackdropEvent(event);
+            }
+            return Clutter.EVENT_PROPAGATE;
+        });
+    }
+
+    get isOpen() {
+        return this._isOpen;
+    }
+
+    _isInsideCard(source, event) {
+        if (!this._card)
+            return false;
+
+        // Check 1: Scene graph hierarchy containment
+        if (source && (source === this._card || this._card.contains(source))) {
+            return true;
+        }
+
+        // Check 2: Coordinate-based bounding box check (Defense in depth)
+        if (event && typeof event.get_coords === 'function') {
+            let [clickX, clickY] = event.get_coords();
+            let [cardX, cardY] = this._card.get_transformed_position();
+            let [cardW, cardH] = this._card.get_transformed_size();
+
+            if (clickX >= cardX && clickX <= cardX + cardW &&
+                clickY >= cardY && clickY <= cardY + cardH) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    _handleBackdropEvent(event) {
+        if (!this._isOpen)
+            return Clutter.EVENT_PROPAGATE;
+
+        let source = event.get_source ? event.get_source() : null;
+        if (!this._isInsideCard(source, event)) {
+            this.close();
+            return Clutter.EVENT_STOP;
+        }
+        return Clutter.EVENT_PROPAGATE;
     }
 
     _onEventCapture(actor, event) {
@@ -112,8 +164,8 @@ class Popup extends St.Widget {
 
         let eventType = event.type();
         if (eventType === Clutter.EventType.BUTTON_PRESS || eventType === Clutter.EventType.TOUCH_BEGIN) {
-            let source = event.get_source();
-            if (!this._card.contains(source)) {
+            let source = event.get_source ? event.get_source() : null;
+            if (!this._isInsideCard(source, event)) {
                 this.close();
                 return Clutter.EVENT_STOP;
             }
@@ -126,7 +178,19 @@ class Popup extends St.Widget {
             return;
 
         let focus = global.stage.key_focus;
-        if (focus && !this._card.contains(focus) && focus !== this) {
+        if (focus) {
+            // Still within popup card or backdrop
+            if (focus === this || this._card.contains(focus)) {
+                return;
+            }
+
+            // If focus fell back to global stage (e.g. after item deletion), refocus search
+            if (focus === global.stage) {
+                this._header.focusSearch();
+                return;
+            }
+
+            // An external actor gained focus -> close popup
             this.close();
         }
     }
@@ -237,9 +301,9 @@ class Popup extends St.Widget {
             y = pointerY - popupHeight;
         }
 
-        // Ensure within monitor left/top
-        x = Math.max(currentMonitor.x + 8, x);
-        y = Math.max(currentMonitor.y + 8, y);
+        // Strict bounds clamping to guarantee full visibility
+        x = Math.max(currentMonitor.x + 8, Math.min(x, monitorRight - popupWidth - 8));
+        y = Math.max(currentMonitor.y + 8, Math.min(y, monitorBottom - popupHeight - 8));
 
         this._card.set_position(x, y);
     }
