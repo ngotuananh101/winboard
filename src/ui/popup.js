@@ -29,6 +29,7 @@ class Popup extends St.BoxLayout {
         this._grab = null;
 
         this._activeTab = 'clipboard';
+        this._eventCaptureId = 0;
 
         this._buildUI();
     }
@@ -147,6 +148,29 @@ class Popup extends St.BoxLayout {
         // Grab pointer & keyboard
         this._grab = Main.pushModal(this);
         this._header.focusSearch();
+
+        // Listen for clicks outside the popup to auto-dismiss
+        if (this._eventCaptureId === 0) {
+            this._eventCaptureId = global.stage.connect('captured-event', (stage, event) => {
+                let type = event.type();
+                if (type === Clutter.EventType.BUTTON_PRESS || type === Clutter.EventType.TOUCH_BEGIN) {
+                    let [clickX, clickY] = event.get_coords();
+                    let [popupX, popupY] = this.get_transformed_position();
+                    let [popupW, popupH] = this.get_transformed_size();
+
+                    let isInside = (
+                        clickX >= popupX && clickX <= popupX + popupW &&
+                        clickY >= popupY && clickY <= popupY + popupH
+                    );
+
+                    if (!isInside) {
+                        this.close();
+                        return Clutter.EVENT_STOP;
+                    }
+                }
+                return Clutter.EVENT_PROPAGATE;
+            });
+        }
     }
 
     _positionAtPointer() {
@@ -192,6 +216,11 @@ class Popup extends St.BoxLayout {
 
     close() {
         if (!this._isOpen) return;
+
+        if (this._eventCaptureId !== 0) {
+            global.stage.disconnect(this._eventCaptureId);
+            this._eventCaptureId = 0;
+        }
 
         if (this._grab) {
             Main.popModal(this._grab);

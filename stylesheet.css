@@ -26,19 +26,24 @@
 
 /* Search Entry */
 .winboard-search-entry {
-    background-color: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background-color: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 8px;
-    padding: 6px 10px;
-    color: #ffffff;
-    caret-color: #60cdff;
+    padding: 7px 12px;
+    color: #f0f0f0;
+    caret-color: #f0f0f0;
     font-size: 13px;
+    transition-duration: 150ms;
 }
 
 .winboard-search-entry:focus {
-    background-color: rgba(255, 255, 255, 0.12);
-    border: 1px solid #60cdff;
-    box-shadow: 0 0 0 1px #60cdff;
+    background-color: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    box-shadow: none;
+}
+
+.winboard-search-entry StLabel.hint-text {
+    color: rgba(255, 255, 255, 0.45);
 }
 
 /* Tabs Bar */
