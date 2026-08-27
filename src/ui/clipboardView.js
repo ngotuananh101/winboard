@@ -1,6 +1,8 @@
 import GObject from 'gi://GObject';
 import St from 'gi://St';
 import Clutter from 'gi://Clutter';
+import Cogl from 'gi://Cogl';
+import GdkPixbuf from 'gi://GdkPixbuf';
 import GLib from 'gi://GLib';
 import Gio from 'gi://Gio';
 
@@ -132,23 +134,15 @@ class ClipboardView extends St.ScrollView {
             textLabel.clutter_text.ellipsize = 3; // PANGO_ELLIPSIZE_END
             box.add_child(textLabel);
         } else if (item.type === 'image') {
-            if (item.imagePath && GLib.file_test(item.imagePath, GLib.FileTest.EXISTS)) {
+            let imageActor = this._createImagePreview(item.imagePath);
+            if (imageActor) {
                 let previewBox = new St.BoxLayout({
                     style_class: 'winboard-image-preview-container',
                     x_align: Clutter.ActorAlign.CENTER,
                     y_align: Clutter.ActorAlign.CENTER,
                     x_expand: true
                 });
-
-                let file = Gio.File.new_for_path(item.imagePath);
-                let gicon = Gio.FileIcon.new(file);
-                let imageIcon = new St.Icon({
-                    gicon: gicon,
-                    icon_size: 140,
-                    style_class: 'winboard-image-preview'
-                });
-
-                previewBox.add_child(imageIcon);
+                previewBox.add_child(imageActor);
                 box.add_child(previewBox);
             } else {
                 let imageLabel = new St.Label({
@@ -205,6 +199,60 @@ class ClipboardView extends St.ScrollView {
         });
 
         return card;
+    }
+
+    _createImagePreview(imagePath) {
+        if (!imagePath || !GLib.file_test(imagePath, GLib.FileTest.EXISTS)) {
+            return null;
+        }
+
+        try {
+            const MAX_WIDTH = 320;
+            const MAX_HEIGHT = 180;
+
+            let [info, origW, origH] = GdkPixbuf.Pixbuf.get_file_info(imagePath);
+            if (!info || origW <= 0 || origH <= 0) {
+                return null;
+            }
+
+            let scale = Math.min(MAX_WIDTH / origW, MAX_HEIGHT / origH, 1.0);
+            let targetW = Math.max(1, Math.round(origW * scale));
+            let targetH = Math.max(1, Math.round(origH * scale));
+
+            let pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_scale(
+                imagePath,
+                targetW,
+                targetH,
+                true
+            );
+
+            if (!pixbuf) {
+                return null;
+            }
+
+            let image = new Clutter.Image();
+            let format = pixbuf.get_has_alpha() ? Cogl.PixelFormat.RGBA_8888 : Cogl.PixelFormat.RGB_888;
+            image.set_data(
+                pixbuf.get_pixels(),
+                format,
+                pixbuf.get_width(),
+                pixbuf.get_height(),
+                pixbuf.get_rowstride()
+            );
+
+            let actor = new Clutter.Actor({
+                content: image,
+                width: pixbuf.get_width(),
+                height: pixbuf.get_height(),
+                x_align: Clutter.ActorAlign.CENTER,
+                y_align: Clutter.ActorAlign.CENTER
+            });
+
+            return actor;
+        } catch (e) {
+            logError(e, 'Failed to create image preview');
+            return null;
+        }
     }
 
     _formatTime(timestamp) {

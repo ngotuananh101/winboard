@@ -24,7 +24,10 @@ gjs -m tests/test_ui_syntax.js
 echo "6. Checking Image Filter Tests (test_image_filter.js)..."
 gjs -m tests/test_image_filter.js
 
-echo "7. Checking Entrypoint Syntax (test_entrypoint_syntax.js)..."
+echo "7. Checking Image Aspect Ratio Loader (test_image_loader.js)..."
+gjs -m tests/test_image_loader.js
+
+echo "8. Checking Entrypoint Syntax (test_entrypoint_syntax.js)..."
 gjs -m tests/test_entrypoint_syntax.js
 
 echo "=== All checks passed! ==="
