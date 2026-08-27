@@ -1,0 +1,10 @@
+{
+  "name": "Winboard",
+  "description": "Windows 11 style Clipboard Manager with Emoji, Kaomoji, Symbols & Auto-Paste",
+  "uuid": "winboard@anhnt.tools",
+  "shell-version": ["46"],
+  "url": "https://github.com/anhnt/winboard",
+  "settings-schema": "org.gnome.shell.extensions.winboard",
+  "gettext-domain": "winboard",
+  "version": 1
+}

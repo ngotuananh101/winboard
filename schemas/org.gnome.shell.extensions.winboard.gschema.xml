@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist gettext-domain="winboard">
+  <schema id="org.gnome.shell.extensions.winboard" path="/org/gnome/shell/extensions/winboard/">
+    <key name="shortcut" type="as">
+      <default><![CDATA[['<Super>v']]]></default>
+      <summary>Shortcut to open clipboard manager</summary>
+      <description>Key combination to toggle Winboard popup</description>
+    </key>
+    <key name="history-size" type="i">
+      <default>50</default>
+      <summary>Maximum history size</summary>
+      <description>Number of unpinned history items to retain</description>
+    </key>
+    <key name="auto-paste" type="b">
+      <default>true</default>
+      <summary>Enable Auto-Paste</summary>
+      <description>Automatically send paste keypress on item selection</description>
+    </key>
+    <key name="store-images" type="b">
+      <default>true</default>
+      <summary>Store Images</summary>
+      <description>Capture and store images/screenshots in clipboard history</description>
+    </key>
+    <key name="strip-whitespace" type="b">
+      <default>false</default>
+      <summary>Strip whitespace</summary>
+      <description>Trim leading and trailing whitespace from copied text</description>
+    </key>
+  </schema>
+</schemalist>
