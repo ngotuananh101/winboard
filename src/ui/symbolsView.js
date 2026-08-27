@@ -1,15 +1,19 @@
+import GObject from 'gi://GObject';
 import St from 'gi://St';
 import Clutter from 'gi://Clutter';
 import GLib from 'gi://GLib';
 
-export class SymbolsView extends St.ScrollView {
-    constructor({ extensionPath, onItemSelected }) {
-        super({
+export const SymbolsView = GObject.registerClass(
+class SymbolsView extends St.ScrollView {
+    _init(params = {}) {
+        let { extensionPath, onItemSelected, ...stParams } = params;
+        super._init({
             style_class: 'winboard-scroll-view',
             hscrollbar_policy: St.PolicyType.NEVER,
             vscrollbar_policy: St.PolicyType.AUTOMATIC,
             x_expand: true,
-            y_expand: true
+            y_expand: true,
+            ...stParams
         });
 
         this._extensionPath = extensionPath;
@@ -80,4 +84,4 @@ export class SymbolsView extends St.ScrollView {
             });
         });
     }
-}
+});

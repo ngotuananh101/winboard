@@ -1,16 +1,20 @@
+import GObject from 'gi://GObject';
 import St from 'gi://St';
 import Clutter from 'gi://Clutter';
 import GLib from 'gi://GLib';
 import Gio from 'gi://Gio';
 
-export class ClipboardView extends St.ScrollView {
-    constructor({ storageManager, onItemSelected }) {
-        super({
+export const ClipboardView = GObject.registerClass(
+class ClipboardView extends St.ScrollView {
+    _init(params = {}) {
+        let { storageManager, onItemSelected, ...stParams } = params;
+        super._init({
             style_class: 'winboard-scroll-view',
             hscrollbar_policy: St.PolicyType.NEVER,
             vscrollbar_policy: St.PolicyType.AUTOMATIC,
             x_expand: true,
-            y_expand: true
+            y_expand: true,
+            ...stParams
         });
 
         this._storage = storageManager;
@@ -184,4 +188,4 @@ export class ClipboardView extends St.ScrollView {
         let mins = date.getMinutes().toString().padStart(2, '0');
         return `${hours}:${mins}`;
     }
-}
+});

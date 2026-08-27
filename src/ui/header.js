@@ -1,11 +1,15 @@
+import GObject from 'gi://GObject';
 import St from 'gi://St';
 import Clutter from 'gi://Clutter';
 
-export class Header extends St.BoxLayout {
-    constructor({ onSearchChanged, onTabSelected }) {
-        super({
+export const Header = GObject.registerClass(
+class Header extends St.BoxLayout {
+    _init(params = {}) {
+        let { onSearchChanged, onTabSelected, ...stParams } = params;
+        super._init({
             vertical: true,
-            style_class: 'winboard-header'
+            style_class: 'winboard-header',
+            ...stParams
         });
 
         this._onSearchChanged = onSearchChanged;
@@ -81,4 +85,4 @@ export class Header extends St.BoxLayout {
     clearSearch() {
         this.searchEntry.set_text('');
     }
-}
+});

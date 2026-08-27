@@ -1,3 +1,4 @@
+import GObject from 'gi://GObject';
 import St from 'gi://St';
 import Clutter from 'gi://Clutter';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
@@ -7,13 +8,16 @@ import { EmojiView } from './emojiView.js';
 import { KaomojiView } from './kaomojiView.js';
 import { SymbolsView } from './symbolsView.js';
 
-export class Popup extends St.BoxLayout {
-    constructor({ extensionPath, storageManager, clipboardManager, autoPaster, settings }) {
-        super({
+export const Popup = GObject.registerClass(
+class Popup extends St.BoxLayout {
+    _init(params = {}) {
+        let { extensionPath, storageManager, clipboardManager, autoPaster, settings, ...stParams } = params;
+        super._init({
             vertical: true,
             style_class: 'winboard-popup',
             reactive: true,
-            can_focus: true
+            can_focus: true,
+            ...stParams
         });
 
         this._extensionPath = extensionPath;
@@ -205,4 +209,4 @@ export class Popup extends St.BoxLayout {
         }
         super.destroy();
     }
-}
+});
