@@ -9,14 +9,16 @@ import { KaomojiView } from './kaomojiView.js';
 import { SymbolsView } from './symbolsView.js';
 
 export const Popup = GObject.registerClass(
-class Popup extends St.BoxLayout {
+class Popup extends St.Widget {
     _init(params = {}) {
         let { extensionPath, storageManager, clipboardManager, autoPaster, settings, ...stParams } = params;
         super._init({
-            vertical: true,
-            style_class: 'winboard-popup',
             reactive: true,
             can_focus: true,
+            x: 0,
+            y: 0,
+            width: 0,
+            height: 0,
             ...stParams
         });
 
@@ -29,18 +31,34 @@ class Popup extends St.BoxLayout {
         this._grab = null;
 
         this._activeTab = 'clipboard';
-        this._eventCaptureId = 0;
 
         this._buildUI();
     }
 
     _buildUI() {
+        // Dismiss when clicking the backdrop outside the card
+        this.connect('button-press-event', (actor, event) => {
+            if (event.get_source() === this) {
+                this.close();
+                return Clutter.EVENT_STOP;
+            }
+            return Clutter.EVENT_PROPAGATE;
+        });
+
+        // The inner floating card container
+        this._card = new St.BoxLayout({
+            vertical: true,
+            style_class: 'winboard-popup',
+            reactive: true,
+            can_focus: true
+        });
+
         // Header (Search + Tabs)
         this._header = new Header({
             onSearchChanged: (text) => this._onSearchChanged(text),
             onTabSelected: (tabId) => this._switchTab(tabId)
         });
-        this.add_child(this._header);
+        this._card.add_child(this._header);
 
         // Content Views
         this._viewsStack = new St.Widget({
@@ -74,7 +92,8 @@ class Popup extends St.BoxLayout {
         this._viewsStack.add_child(this._kaomojiView);
         this._viewsStack.add_child(this._symbolsView);
 
-        this.add_child(this._viewsStack);
+        this._card.add_child(this._viewsStack);
+        this.add_child(this._card);
 
         this._switchTab('clipboard');
 
@@ -148,32 +167,13 @@ class Popup extends St.BoxLayout {
         // Grab pointer & keyboard
         this._grab = Main.pushModal(this);
         this._header.focusSearch();
-
-        // Listen for clicks outside the popup to auto-dismiss
-        if (this._eventCaptureId === 0) {
-            this._eventCaptureId = global.stage.connect('captured-event', (stage, event) => {
-                let type = event.type();
-                if (type === Clutter.EventType.BUTTON_PRESS || type === Clutter.EventType.TOUCH_BEGIN) {
-                    let [clickX, clickY] = event.get_coords();
-                    let [popupX, popupY] = this.get_transformed_position();
-                    let [popupW, popupH] = this.get_transformed_size();
-
-                    let isInside = (
-                        clickX >= popupX && clickX <= popupX + popupW &&
-                        clickY >= popupY && clickY <= popupY + popupH
-                    );
-
-                    if (!isInside) {
-                        this.close();
-                        return Clutter.EVENT_STOP;
-                    }
-                }
-                return Clutter.EVENT_PROPAGATE;
-            });
-        }
     }
 
     _positionAtPointer() {
+        // Expand full screen backdrop for outside click capturing
+        this.set_position(Main.layoutManager.uiGroup.x, Main.layoutManager.uiGroup.y);
+        this.set_size(Main.layoutManager.uiGroup.width, Main.layoutManager.uiGroup.height);
+
         let [pointerX, pointerY] = global.get_pointer();
 
         // Find the monitor containing the pointer
@@ -211,16 +211,11 @@ class Popup extends St.BoxLayout {
         x = Math.max(currentMonitor.x + 8, x);
         y = Math.max(currentMonitor.y + 8, y);
 
-        this.set_position(x, y);
+        this._card.set_position(x, y);
     }
 
     close() {
         if (!this._isOpen) return;
-
-        if (this._eventCaptureId !== 0) {
-            global.stage.disconnect(this._eventCaptureId);
-            this._eventCaptureId = 0;
-        }
 
         if (this._grab) {
             Main.popModal(this._grab);
