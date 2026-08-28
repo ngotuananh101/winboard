@@ -7,6 +7,9 @@ export class StorageManager {
         this._cacheDir = GLib.build_filenamev([GLib.get_user_cache_dir(), 'winboard', 'images']);
         this._historyFile = GLib.build_filenamev([this._baseDir, 'history.json']);
         this._maxItems = 50;
+        this._items = [];
+        this._loaded = false;
+        this._savePending = false;
 
         this._ensureDirectories();
     }
@@ -20,58 +23,127 @@ export class StorageManager {
         GLib.mkdir_with_parents(this._cacheDir, 0o755);
     }
 
-    loadHistory() {
+    /**
+     * Load history from disk asynchronously.
+     * Returns a Promise that resolves when loading is complete.
+     * Safe to call multiple times — subsequent calls are no-ops if already loaded.
+     */
+    async loadFromDisk() {
+        if (this._loaded) return;
+
         try {
-            if (!GLib.file_test(this._historyFile, GLib.FileTest.EXISTS)) {
-                return { items: [] };
-            }
-
-            let [ok, contents] = GLib.file_get_contents(this._historyFile);
-            if (!ok) return { items: [] };
-
-            let decoder = new TextDecoder('utf-8');
-            let data = JSON.parse(decoder.decode(contents));
-            if (!data || !Array.isArray(data.items)) {
-                return { items: [] };
-            }
-
-            let modified = false;
-            data.items.forEach(item => {
-                if (!item.id) {
-                    item.id = GLib.uuid_string_random();
-                    modified = true;
-                }
+            let file = Gio.File.new_for_path(this._historyFile);
+            let [ok, contents] = await new Promise(resolve => {
+                file.load_contents_async(null, (_file, result) => {
+                    try {
+                        resolve(file.load_contents_finish(result));
+                    } catch (e) {
+                        resolve([false, null]);
+                    }
+                });
             });
-            if (modified) {
-                this.saveHistory(data);
-            }
 
-            return data;
+            if (ok && contents) {
+                let decoder = new TextDecoder('utf-8');
+                let data = JSON.parse(decoder.decode(contents));
+                if (data && Array.isArray(data.items)) {
+                    let modified = false;
+                    data.items.forEach(item => {
+                        if (!item.id) {
+                            item.id = GLib.uuid_string_random();
+                            modified = true;
+                        }
+                    });
+                    this._items = data.items;
+                    if (modified) {
+                        this._scheduleSave();
+                    }
+                }
+            }
         } catch (e) {
             logError(e, 'Failed to load Winboard history');
-            return { items: [] };
         }
+
+        this._loaded = true;
     }
 
-    saveHistory(data) {
+    /**
+     * Synchronous accessor for in-memory items.
+     * Call loadFromDisk() first during extension enable().
+     */
+    getItems() {
+        return this._items;
+    }
+
+    /**
+     * Schedule an async save to disk. Debounced — multiple rapid calls
+     * result in a single write.
+     */
+    _scheduleSave() {
+        if (this._savePending) return;
+        this._savePending = true;
+
+        GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
+            this._savePending = false;
+            this._writeToDisk();
+            return GLib.SOURCE_REMOVE;
+        });
+    }
+
+    /**
+     * Write current items to disk asynchronously using atomic rename.
+     */
+    async _writeToDisk() {
         try {
             this._ensureDirectories();
-            let jsonString = JSON.stringify(data, null, 2);
-            let tmpFile = `${this._historyFile}.tmp`;
+            let jsonString = JSON.stringify({ items: this._items }, null, 2);
+            let tmpPath = `${this._historyFile}.tmp`;
+            let tmpFile = Gio.File.new_for_path(tmpPath);
+            let destFile = Gio.File.new_for_path(this._historyFile);
 
-            // Atomic write: write to temp file first, then atomically rename
-            GLib.file_set_contents(tmpFile, jsonString);
-            let src = Gio.File.new_for_path(tmpFile);
-            let dest = Gio.File.new_for_path(this._historyFile);
-            src.move(dest, Gio.FileCopyFlags.OVERWRITE, null, null);
+            // Async write to temp file (requires GBytes, not string)
+            let bytes = new GLib.Bytes(jsonString);
+            await new Promise((resolve, reject) => {
+                tmpFile.replace_contents_async(
+                    bytes, null, false,
+                    Gio.FileCreateFlags.REPLACE_DESTINATION,
+                    null,
+                    (_file, result) => {
+                        try {
+                            tmpFile.replace_contents_finish(result);
+                            resolve();
+                        } catch (e) {
+                            reject(e);
+                        }
+                    }
+                );
+            });
+
+            // Atomic rename: tmp -> final
+            await new Promise((resolve, reject) => {
+                tmpFile.move_async(
+                    destFile,
+                    Gio.FileCopyFlags.OVERWRITE,
+                    GLib.PRIORITY_DEFAULT,
+                    null,
+                    null,
+                    (_file, result) => {
+                        try {
+                            tmpFile.move_finish(result);
+                            resolve();
+                        } catch (e) {
+                            reject(e);
+                        }
+                    }
+                );
+            });
         } catch (e) {
             logError(e, 'Failed to save Winboard history');
         }
     }
 
     addItem({ type, content = '', imagePath = '', pinned = false }) {
-        let history = this.loadHistory();
-        let items = history.items;
+        let items = this._items;
 
         // Check if duplicate of existing item
         let existingIndex = -1;
@@ -100,7 +172,7 @@ export class StorageManager {
         }
 
         this._prune(items);
-        this.saveHistory({ items });
+        this._scheduleSave();
         return item;
     }
 
@@ -125,36 +197,33 @@ export class StorageManager {
     }
 
     removeItem(id) {
-        let history = this.loadHistory();
-        let index = history.items.findIndex(i => i.id === id);
+        let index = this._items.findIndex(i => i.id === id);
         if (index !== -1) {
-            let removed = history.items.splice(index, 1)[0];
+            let removed = this._items.splice(index, 1)[0];
             if (removed.type === 'image' && removed.imagePath) {
                 try {
                     let file = Gio.File.new_for_path(removed.imagePath);
                     file.delete(null);
                 } catch (_) {}
             }
-            this.saveHistory(history);
+            this._scheduleSave();
             return true;
         }
         return false;
     }
 
     togglePin(id) {
-        let history = this.loadHistory();
-        let item = history.items.find(i => i.id === id);
+        let item = this._items.find(i => i.id === id);
         if (item) {
             item.pinned = !item.pinned;
-            this.saveHistory(history);
+            this._scheduleSave();
             return item.pinned;
         }
         return false;
     }
 
     clearUnpinned() {
-        let history = this.loadHistory();
-        history.items = history.items.filter(item => {
+        this._items = this._items.filter(item => {
             if (!item.pinned) {
                 if (item.type === 'image' && item.imagePath) {
                     try {
@@ -166,6 +235,6 @@ export class StorageManager {
             }
             return true;
         });
-        this.saveHistory(history);
+        this._scheduleSave();
     }
 }

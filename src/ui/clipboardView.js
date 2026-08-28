@@ -45,8 +45,7 @@ class ClipboardView extends St.ScrollView {
         this._currentFilter = filterText || '';
         this._container.destroy_all_children();
 
-        let history = this._storage.loadHistory();
-        let items = history.items || [];
+        let items = this._storage.getItems() || [];
 
         if (this._currentFilter) {
             let query = this._currentFilter.toLowerCase().trim();

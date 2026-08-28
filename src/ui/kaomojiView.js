@@ -2,6 +2,7 @@ import GObject from 'gi://GObject';
 import St from 'gi://St';
 import Clutter from 'gi://Clutter';
 import GLib from 'gi://GLib';
+import Gio from 'gi://Gio';
 
 export const KaomojiView = GObject.registerClass(
 class KaomojiView extends St.ScrollView {
@@ -18,7 +19,7 @@ class KaomojiView extends St.ScrollView {
 
         this._extensionPath = extensionPath;
         this._onItemSelected = onItemSelected;
-        this._categories = this._loadData();
+        this._categories = [];
 
         this._container = new St.BoxLayout({
             vertical: true,
@@ -27,21 +28,31 @@ class KaomojiView extends St.ScrollView {
         });
         this.set_child(this._container);
 
-        this.refresh();
+        // Load data asynchronously, then render
+        this._loadDataAsync();
     }
 
-    _loadData() {
+    async _loadDataAsync() {
         try {
             let jsonPath = GLib.build_filenamev([this._extensionPath, 'src', 'data', 'kaomoji.json']);
-            let [ok, contents] = GLib.file_get_contents(jsonPath);
-            if (ok) {
+            let file = Gio.File.new_for_path(jsonPath);
+            let [ok, contents] = await new Promise(resolve => {
+                file.load_contents_async(null, (_file, result) => {
+                    try {
+                        resolve(file.load_contents_finish(result));
+                    } catch (e) {
+                        resolve([false, null]);
+                    }
+                });
+            });
+            if (ok && contents) {
                 let decoder = new TextDecoder('utf-8');
-                return JSON.parse(decoder.decode(contents));
+                this._categories = JSON.parse(decoder.decode(contents));
+                this.refresh();
             }
         } catch (e) {
             logError(e, 'Failed to load kaomoji.json');
         }
-        return [];
     }
 
     refresh(filterText = '') {

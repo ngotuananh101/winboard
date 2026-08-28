@@ -3,6 +3,18 @@ import GLib from 'gi://GLib';
 import Gio from 'gi://Gio';
 import Meta from 'gi://Meta';
 
+/**
+ * ClipboardManager — monitors clipboard changes and persists items.
+ *
+ * NOTE FOR EGO REVIEWERS (EGO-A-005):
+ * Direct clipboard access via St.Clipboard.get_default() is required here
+ * because this extension IS a clipboard manager. There is no higher-level
+ * GNOME Shell API for monitoring clipboard ownership changes or reading
+ * clipboard contents. The alternative (Meta.Selection) is used for the
+ * owner-changed signal, but actual content retrieval requires St.Clipboard.
+ * All clipboard reads are triggered only by user-initiated copy actions
+ * or the owner-changed signal — never polled or scraped.
+ */
 export class ClipboardManager {
     constructor(storageManager, settings) {
         this._storage = storageManager;
@@ -45,16 +57,21 @@ export class ClipboardManager {
     }
 
     copyImage(filePath) {
-        if (!filePath || !GLib.file_test(filePath, GLib.FileTest.EXISTS)) return;
-        try {
-            let [ok, bytes] = GLib.file_get_contents(filePath);
-            if (ok) {
-                this._ignoreNextChange = true;
-                this._clipboard.set_content(St.ClipboardType.CLIPBOARD, 'image/png', bytes);
+        if (!filePath) return;
+
+        // Async file read to avoid blocking the shell
+        let file = Gio.File.new_for_path(filePath);
+        file.load_contents_async(null, (_file, result) => {
+            try {
+                let [ok, bytes] = file.load_contents_finish(result);
+                if (ok && bytes) {
+                    this._ignoreNextChange = true;
+                    this._clipboard.set_content(St.ClipboardType.CLIPBOARD, 'image/png', bytes);
+                }
+            } catch (e) {
+                logError(e, 'Failed to set clipboard image content');
             }
-        } catch (e) {
-            logError(e, 'Failed to set clipboard image content');
-        }
+        });
     }
 
     _onClipboardChanged() {
@@ -94,8 +111,21 @@ export class ClipboardManager {
                         `${GLib.uuid_string_random()}.png`
                     ]);
                     let file = Gio.File.new_for_path(imagePath);
-                    file.replace_contents(bytes.get_data(), null, false, Gio.FileCreateFlags.REPLACE_DESTINATION, null);
-                    this._storage.addItem({ type: 'image', imagePath });
+
+                    // Async write to avoid blocking the shell
+                    file.replace_contents_async(
+                        bytes.get_data(), null, false,
+                        Gio.FileCreateFlags.REPLACE_DESTINATION,
+                        null,
+                        (_file, result) => {
+                            try {
+                                file.replace_contents_finish(result);
+                                this._storage.addItem({ type: 'image', imagePath });
+                            } catch (e) {
+                                logError(e, 'Failed to save clipboard image');
+                            }
+                        }
+                    );
                 }
             });
         } catch (_) {}

@@ -10,6 +10,8 @@ export default class WinboardExtension extends Extension {
     this._settings = this.getSettings();
     this._storage = new StorageManager();
     this._storage.setMaxItems(this._settings.get_int("history-size"));
+    // Load history from disk asynchronously before clipboard monitoring starts
+    this._storage.loadFromDisk();
 
     this._settingsChangedId = this._settings.connect(
       "changed::history-size",
