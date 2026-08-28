@@ -57,7 +57,13 @@ export class StorageManager {
         try {
             this._ensureDirectories();
             let jsonString = JSON.stringify(data, null, 2);
-            GLib.file_set_contents(this._historyFile, jsonString);
+            let tmpFile = `${this._historyFile}.tmp`;
+
+            // Atomic write: write to temp file first, then atomically rename
+            GLib.file_set_contents(tmpFile, jsonString);
+            let src = Gio.File.new_for_path(tmpFile);
+            let dest = Gio.File.new_for_path(this._historyFile);
+            src.move(dest, Gio.FileCopyFlags.OVERWRITE, null, null);
         } catch (e) {
             logError(e, 'Failed to save Winboard history');
         }

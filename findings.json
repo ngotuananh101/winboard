@@ -1,0 +1,66 @@
+[
+  {
+    "file": "metadata.json",
+    "line": 5,
+    "severity": "high",
+    "title": "shell-version too restrictive — only declares 46",
+    "description": "The extension declares `\"shell-version\": [\"46\"]` but the codebase uses ESM imports (`gi://St`, `gi://Clutter`) and `resource:///org/gnome/shell/extensions/extension.js`, all of which are supported since GNOME 45. No GNOME 47-deprecated APIs are used. The hardcoded single-version array prevents installation on GNOME 45 and 47 even though the code is compatible with both.",
+    "recommendation": "Change to `\"shell-version\": [\"45\", \"46\", \"47\"]` — or at minimum `[\"46\", \"47\"]` so the extension is installable on GNOME 47."
+  },
+  {
+    "file": "src/core/autoPaster.js",
+    "line": 32,
+    "severity": "high",
+    "title": "GLib timeout source ID not stored — cannot cancel on disable",
+    "description": "`GLib.timeout_add()` is called at line 32 but the returned source ID is discarded. If the extension is disabled during the 60ms window before the timeout fires, there is no way to cancel it. The callback calls `_sendPasteShortcut` which accesses `this._virtualKeyboard`, an already-nulled reference, causing a crash or undefined behavior. Additionally, the virtual device created via `seat.create_virtual_device()` at line 13 is never freed.",
+    "recommendation": "Store the timeout source ID (e.g., `this._pasteTimeoutId`) and cancel it in a new `destroy()` / `stop()` method via `GLib.source_remove()`. Also destroy the virtual keyboard by calling `this._virtualKeyboard = null` (the seat manages the device lifecycle, but the reference should be released)."
+  },
+  {
+    "file": "src/ui/header.js",
+    "line": 32,
+    "severity": "medium",
+    "title": "clutter_text signal never disconnected on destroy",
+    "description": "The `text-changed` signal is connected to `this.searchEntry.clutter_text.connect(...)` at line 32. The Header class has no `destroy()` method and no explicit disconnect. While the Clutter actor's destruction will tear down its signals when the parent Popup is destroyed, this is fragile: if the Header is ever reused or if `searchEntry` is replaced, the old signal handler keeps the closure alive. Compare with the Popup's careful signal-ID tracking pattern.",
+    "recommendation": "Store the signal connection ID (e.g., `this._searchChangedId`) and add a `destroy()` method that calls `this.searchEntry.clutter_text.disconnect(this._searchChangedId)` followed by `super.destroy()`."
+  },
+  {
+    "file": "src/core/autoPaster.js",
+    "line": 40,
+    "severity": "medium",
+    "title": "Clutter.get_current_event_time() returns 0 outside event context",
+    "description": "`Clutter.get_current_event_time()` (line 40) is called from a `GLib.timeout_add` callback, not from inside an event handler. It returns 0 (CLUTTER_CURRENT_TIME), so the `* 1000` multiplication is both incorrect and meaningless. The `notify_keyval()` API expects a millisecond timestamp; `get_current_event_time()` already returns milliseconds. The `* 1000` would pass a microseconds value if the timestamp were non-zero, which would be misinterpreted as a far-future timestamp.",
+    "recommendation": "Replace with `CLUTTER_CURRENT_TIME` (0) explicitly: `let now = 0;` — or omit the time parameter entirely if the binding allows it. Remove the `* 1000` conversion."
+  },
+  {
+    "file": "prefs.js",
+    "line": 157,
+    "severity": "medium",
+    "title": "GSettings signal connection not disconnected on preferences close",
+    "description": "The `settings.connect('changed::shortcut', ...)` at line 157 connects a signal handler that references `shortcutLabel` (a GTK widget). The connection ID is never stored and never disconnected. When the preferences window is closed, the signal system keeps a reference to the closure, which in turn keeps the GTK widget alive. This is a minor per-open leak that accumulates each time the user opens preferences.",
+    "recommendation": "Store the signal connection ID and disconnect it when the window is closed (connect to window's `destroy` signal to clean up)."
+  },
+  {
+    "file": "src/ui/popup.js",
+    "line": 270,
+    "severity": "low",
+    "title": "Bound function created on each open() call for global.stage signals",
+    "description": "`this._onEventCapture.bind(this)` at line 270 creates a new Function object each time `open()` is called (and similarly at line 273). While the `close()` method correctly disconnects by signal ID, the temporary bound function object is not reused. This is not a leak (the old one becomes unreachable after disconnect) but is wasteful and slightly harder to reason about.",
+    "recommendation": "Store the bound handler in the constructor: `this._onEventCaptureBound = this._onEventCapture.bind(this)` and `this._onKeyFocusChangedBound = this._onKeyFocusChanged.bind(this)`, then use those stored references in `connect()`."
+  },
+  {
+    "file": "src/core/keybinder.js",
+    "line": 39,
+    "severity": "low",
+    "title": "Shell settings mutation not restored on crash",
+    "description": "The `_resolveConflicts()` method (line 39-55) mutates `org.gnome.shell.keybindings:toggle-message-tray` if the user's shortcut is `<Super>v`. The original values are saved in `this._overriddenTrayKeys` and restored in `unbind()`. However, if the extension crashes or the shell is killed before `disable()` runs, the shell setting remains modified. This is a general concern with any settings mutation, but the pattern is correct for the normal disable path.",
+    "recommendation": "Consider adding a comment documenting this trade-off, or use `Main.wm.addKeybinding` with `Meta.KeyBindingFlags.NONE` and a higher-priority action mode instead of mutating the tray keybinding — though this may not fully resolve the conflict."
+  },
+  {
+    "file": "src/ui/clipboardView.js",
+    "line": 241,
+    "severity": "low",
+    "title": "GdkPixbuf not explicitly freed after image preview creation",
+    "description": "`_createImagePreview()` (line 212-264) creates a `GdkPixbuf.Pixbuf` at line 230, copies its pixel data into a `Clutter.Image` at line 243, and then lets the pixbuf go out of scope. The pixbuf holds potentially large image data in memory. GJS garbage collection will eventually free it, but for large images the memory pressure could be noticeable until GC runs. This is a general GJS best-practice observation.",
+    "recommendation": "Call `pixbuf = null` explicitly after the `Clutter.Image.set_data()` call to allow the pixbuf memory to be reclaimed sooner."
+  }
+]

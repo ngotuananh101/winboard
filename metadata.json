@@ -2,7 +2,7 @@
   "name": "Winboard",
   "description": "Windows 11 style Clipboard Manager with Emoji, Kaomoji, Symbols & Auto-Paste",
   "uuid": "winboard@ponta.dev",
-  "shell-version": ["46"],
+  "shell-version": ["45", "46", "47"],
   "url": "https://github.com/ngotuananh101/winboard",
   "settings-schema": "org.gnome.shell.extensions.winboard",
   "gettext-domain": "winboard",
