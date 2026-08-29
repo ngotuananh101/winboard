@@ -115,6 +115,17 @@ class Popup extends St.Widget {
             }
             return Clutter.EVENT_PROPAGATE;
         });
+
+        // Direct backdrop click / touch listener (outside click -> close)
+        this.connect('button-press-event', (actor, event) => {
+            return this._handleBackdropEvent(event);
+        });
+
+        this.connect('touch-event', (actor, event) => {
+            if (event.type() === Clutter.EventType.TOUCH_BEGIN)
+                return this._handleBackdropEvent(event);
+            return Clutter.EVENT_PROPAGATE;
+        });
     }
 
     get isOpen() {
@@ -143,6 +154,19 @@ class Popup extends St.Widget {
         }
 
         return false;
+    }
+
+
+    _handleBackdropEvent(event) {
+        if (!this._isOpen)
+            return Clutter.EVENT_PROPAGATE;
+
+        let source = event.get_source ? event.get_source() : null;
+        if (!this._isInsideCard(source, event)) {
+            this.close();
+            return Clutter.EVENT_STOP;
+        }
+        return Clutter.EVENT_PROPAGATE;
     }
 
     _onEventCapture(actor, event) {
